@@ -6,10 +6,10 @@
     "configurations": [
         {
             "python": "E:\\Anaconda\\envs\\torch\\python.exe",
-            "name": "jobv2",
+            "name": "job",
             "type": "python",
             "request": "launch",
-            "module": "jobv2",
+            "module": "job",
             "console": "integratedTerminal",
             "args": [
                 "42",
