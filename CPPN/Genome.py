@@ -4,8 +4,8 @@ from scipy.ndimage.measurements import label
 
 import numpy as np
 
-from CPPN.NetworkUtils import sigmoid
-from CPPN.Networks import CPPN as Network
+from .NetworkUtils import sigmoid
+from .Networks import CPPN as Network
 
 # # for test stability, we need to make sure the network is deterministic
 # # when realistcally used, we should eliminate the deterministic part
@@ -94,17 +94,14 @@ class Genotype(object):
             for name in network.graph.nodes():
                 network.graph.nodes[name]["evaluated"] = False  # flag all nodes as unevaluated
 
-            # repeat = 0
-            # while(network.morphology is None):
             network.set_input_node_states(self.orig_size_xyz, self.density)  # reset the inputs
-            # flattened_output = int(self.orig_size_xyz[0] * self.orig_size_xyz[1] * self.orig_size_xyz[2] * self.density)
+            flattened_output = int(self.orig_size_xyz[0] * self.orig_size_xyz[1] * self.orig_size_xyz[2] * self.density)
 
             for name in network.output_node_names:
-                # network.graph.nodes[name]["state"] = np.zeros(flattened_output)  # clear old outputs
+                network.graph.nodes[name]["state"] = np.zeros(flattened_output)  # clear old outputs
                 network.graph.nodes[name]["state"] = self.calc_node_state(network, name)  # calculate new outputs
                 network.morphology = geno_to_pheno(network.pointcloud, \
                     network.graph.nodes[name]["state"], self.threshold, self.border_width, self.inside_sparsity)
-                # print("From Genotype.express: repeat {}".format(repeat))
 
     def calc_node_state(self, network, node_name):
         """Propagate input values through the network"""
@@ -123,6 +120,28 @@ class Genotype(object):
         network.graph.nodes[node_name]["state"] = new_state
 
         return network.graph.nodes[node_name]["function"](new_state)
+
+### INP
+# NODE(geo): num
+# id, x y z, volume
+# MPT(material): num
+# id, x y z, volume
+# MPT_GROUP, category
+# id, cat_id
+
+def format_outprint(split_parts, filename):
+    """format the split parts to the output format
+
+    Args:
+        split_parts (list): list of split parts
+        filename (str): filename of the output file
+
+    Returns:
+        None
+    """
+    geo_num = 0
+    mat_num = 0
+    
 
 
 def geno_to_pheno(pointcloud, output_state, threshold, border_width=0.05, inside_sparsity=1000):

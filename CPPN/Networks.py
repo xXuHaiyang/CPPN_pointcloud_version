@@ -7,7 +7,7 @@ import networkx as nx
 import numpy as np
 from networkx import DiGraph
 
-from CPPN.NetworkUtils import neg_abs, neg_sqrt_abs, neg_square, normalize, sigmoid, sqrt_abs, neg_sign
+from .NetworkUtils import neg_abs, neg_sqrt_abs, neg_square, normalize, sigmoid, sqrt_abs, neg_sign
 
 class CPPN():
 
@@ -422,7 +422,7 @@ if __name__ == "__main__":
             border = np.concatenate((border_part, output_border_part.reshape(-1, 1), \
                 split_border_part.reshape(-1, 1), border_geo.reshape(-1, 1)), axis=1)
             # for inside_part, randomly half are material points, half are geometry points
-            inside_geo_or_mat = np.random.randint(0, 2, len(inside_part))
+            inside_geo_or_mat = np.random.randint(0, 2, len(inside_part)) # half are material points, half are geometry points
             inside = np.concatenate((inside_part, output_inside_part.reshape(-1, 1), \
                 split_inside_part.reshape(-1, 1), inside_geo_or_mat.reshape(-1, 1)), axis=1)
             
@@ -482,7 +482,7 @@ if __name__ == "__main__":
         colors[split_part[:, -1] == 1, :] = material_color_parts[i] # material points
         cloud.colors = o3d.utility.Vector3dVector(colors)
         clouds.append(cloud)
-        break
+        # break
     o3d.visualization.draw_geometries(clouds)
 
     """

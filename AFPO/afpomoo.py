@@ -2,7 +2,7 @@ import copy
 import random
 
 from multiprocessing import Pool
-from AFPO.moo_interfaces import RobotInterface
+from .moo_interfaces import RobotInterface
 
 class AFPOMoo(object):
     def __init__(self, robot_factory, pop_size=50):

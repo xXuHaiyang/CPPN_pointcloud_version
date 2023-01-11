@@ -3,7 +3,7 @@ import numpy as np
 import pickle
 import math
 
-from AFPO.moo_interfaces import MOORobotInterface
+from AFPO import MOORobotInterface
 
 class SoftbotRobot(MOORobotInterface):
     def __init__(self, phenotype, seq_num_gen, seed, num_fitnesses):
@@ -100,7 +100,7 @@ class SoftbotRobot(MOORobotInterface):
     def sphere_test_score(self, test_split):
         penalty = 0
         for point in test_split:
-            if (point[0])**2 + (point[1])**2 + (point[2])**2 > 0.6:
+            if (point[0])**2 + (point[1])**2 + (point[2])**2 > 0.5:
                 penalty -= 10
         return penalty
 

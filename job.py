@@ -4,9 +4,9 @@ import random
 import numpy
 import subprocess as sub
 
-from AFPO.afpomoo import AFPOMoo
-from CPPN.Genome import Genotype, Phenotype
-from CPPN.Networks import CPPN
+from AFPO import AFPOMoo
+from CPPN import Genotype, Phenotype
+from CPPN import CPPN
 from softbot_robot import SoftbotRobot
 from utils import get_seq_num
 
