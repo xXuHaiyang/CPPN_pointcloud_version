@@ -15,7 +15,7 @@ from .Networks import CPPN as Network
 class Genotype(object):
     """A container for multiple networks, 'genetic code' copied with modification to produce offspring."""
 
-    def __init__(self, orig_size_xyz=(6, 6, 6), density=10., one_shape_only=False, threshold=None, border_width=0.05, inside_sparsity=1000):
+    def __init__(self, orig_size_xyz=(5, 5, 5), density=8000., one_shape_only=False, threshold=None, border_width=0.015, inside_sparsity=100):
 
         """
         Parameters
@@ -121,30 +121,8 @@ class Genotype(object):
 
         return network.graph.nodes[node_name]["function"](new_state)
 
-### INP
-# NODE(geo): num
-# id, x y z, volume
-# MPT(material): num
-# id, x y z, volume
-# MPT_GROUP, category
-# id, cat_id
 
-def format_outprint(split_parts, filename):
-    """format the split parts to the output format
-
-    Args:
-        split_parts (list): list of split parts
-        filename (str): filename of the output file
-
-    Returns:
-        None
-    """
-    geo_num = 0
-    mat_num = 0
-    
-
-
-def geno_to_pheno(pointcloud, output_state, threshold, border_width=0.05, inside_sparsity=1000):
+def geno_to_pheno(pointcloud, output_state, threshold, border_width=0.02, inside_sparsity=1000):
     """split the pointcloud according to the output space
 
     Args:
@@ -178,7 +156,7 @@ def geno_to_pheno(pointcloud, output_state, threshold, border_width=0.05, inside
         default_border = np.zeros(pointcloud.shape[0])
         default_border[default_border_idx] = 1
         cube_border = np.logical_and(default_border, np.logical_and(output_state >= threshold[i], output_state <= threshold[i+1]))
-        # border points index
+        # cross-material border index
         if i == 0: # first split, no floor border
             if_border = np.logical_and(threshold[i+1]-border_width <= output_state, output_state < threshold[i+1])
         elif i == len(threshold)-2: # last split, no ceiling border
@@ -200,15 +178,16 @@ def geno_to_pheno(pointcloud, output_state, threshold, border_width=0.05, inside
         inside_part = pointcloud[if_inside][::inside_sparsity]
         output_border_part = output_state[if_border]
         output_inside_part = output_state[if_inside][::inside_sparsity]
-        split_border_part = np.ones(len(border_part)) * i
-        split_inside_part = np.ones(len(inside_part)) * i
+        split_border_part = np.ones(len(border_part), dtype=np.int8) * i
+        split_inside_part = np.ones(len(inside_part), dtype=np.int8) * i
         
         # for border_part, all are geometry points, material_index is zero
         border_geo = np.zeros(len(border_part))
         border = np.concatenate((border_part, output_border_part.reshape(-1, 1), \
             split_border_part.reshape(-1, 1), border_geo.reshape(-1, 1)), axis=1)
-        # for inside_part, randomly half are material points, half are geometry points
-        inside_geo_or_mat = np.random.randint(0, 2, len(inside_part))
+        # for inside_part, randomly 1/4 are material points(1), 3/4 are geometry points(0)
+        inside_geo_or_mat = np.zeros(len(inside_part))
+        inside_geo_or_mat[np.random.choice(len(inside_part), int(len(inside_part)/4), replace=False)] = 1
         inside = np.concatenate((inside_part, output_inside_part.reshape(-1, 1), \
             split_inside_part.reshape(-1, 1), inside_geo_or_mat.reshape(-1, 1)), axis=1)
         
