@@ -140,23 +140,24 @@ def geno_to_pheno(pointcloud, output_state, threshold, border_width=0.02, inside
         where split_index is the index of the split the point belongs to
         geo_or_mat is 0(geometry points) or 1(material points)
     """
+    N = pointcloud.shape[0]
+    
+    # ----------------------- get threshold ready for split -----------------------
     if type(threshold) != list:
         threshold = [threshold]
-    # TODO
+    # TODO fix initial wrong, ugly imple
     if min(output_state) > max(threshold) or max(output_state) < min(threshold):
-        return [np.ones((10, 6))]
+        return None
     threshold = [min(output_state)] + threshold + [max(output_state)]
     threshold.sort()
     
+    # ----------------------- split the pointcloud -----------------------
     split_parts = []
     for i in range(len(threshold)-1):
+        
         part = None
-        # cube border index
-        default_border_idx = np.where(np.logical_or(pointcloud[:, :3] < border_width-1, pointcloud[:, :3] > -border_width+1))[0]
-        default_border = np.zeros(pointcloud.shape[0])
-        default_border[default_border_idx] = 1
-        cube_border = np.logical_and(default_border, np.logical_and(output_state >= threshold[i], output_state <= threshold[i+1]))
-        # cross-material border index
+        
+        # ----------------------- cross border -----------------------
         if i == 0: # first split, no floor border
             if_border = np.logical_and(threshold[i+1]-border_width <= output_state, output_state < threshold[i+1])
         elif i == len(threshold)-2: # last split, no ceiling border
@@ -164,7 +165,8 @@ def geno_to_pheno(pointcloud, output_state, threshold, border_width=0.02, inside
         else:
             if_border = np.logical_and(threshold[i] <= output_state, output_state <= threshold[i]+border_width) \
                 + np.logical_and(threshold[i+1]-border_width <= output_state, output_state < threshold[i+1])
-        if_border = np.logical_or(if_border, cube_border)
+
+        # ----------------------- inside -----------------------
         # inside points index
         if i == 0:
             if_inside = output_state < threshold[i+1]-border_width
@@ -172,8 +174,10 @@ def geno_to_pheno(pointcloud, output_state, threshold, border_width=0.02, inside
             if_inside = output_state > threshold[i]+border_width
         else:
             if_inside = np.logical_and(output_state > threshold[i]+border_width, output_state < threshold[i+1]-border_width)
-        if_inside = np.logical_and(if_inside, np.logical_not(cube_border))
         
+        
+        # ----------------------- arrange cross border and inside points -----------------------
+        # define border and inside point idx, boo
         border_part = pointcloud[if_border]
         inside_part = pointcloud[if_inside][::inside_sparsity]
         output_border_part = output_state[if_border]
@@ -181,17 +185,43 @@ def geno_to_pheno(pointcloud, output_state, threshold, border_width=0.02, inside
         split_border_part = np.ones(len(border_part), dtype=np.int8) * i
         split_inside_part = np.ones(len(inside_part), dtype=np.int8) * i
         
+        # ----------------------- combine cross border and inside points to output-----------------------
         # for border_part, all are geometry points, material_index is zero
-        border_geo = np.zeros(len(border_part))
+        border_geo_or_mat = np.zeros(len(border_part))
         border = np.concatenate((border_part, output_border_part.reshape(-1, 1), \
-            split_border_part.reshape(-1, 1), border_geo.reshape(-1, 1)), axis=1)
+            split_border_part.reshape(-1, 1), border_geo_or_mat.reshape(-1, 1)), axis=1)
         # for inside_part, randomly 1/4 are material points(1), 3/4 are geometry points(0)
         inside_geo_or_mat = np.zeros(len(inside_part))
         inside_geo_or_mat[np.random.choice(len(inside_part), int(len(inside_part)/4), replace=False)] = 1
         inside = np.concatenate((inside_part, output_inside_part.reshape(-1, 1), \
             split_inside_part.reshape(-1, 1), inside_geo_or_mat.reshape(-1, 1)), axis=1)
-        
         part = np.concatenate((border, inside), axis=0)
+        
+        # ----------------------- default cube border -----------------------
+        # cube border index, set on the 6 faces of the cube
+        cube_border = []
+        per_edge = int(N**(1/3))
+        s1 = np.linspace(-1, 1, per_edge, endpoint=True)
+        s2 = np.linspace(-1, 1, per_edge, endpoint=True)
+        s1, s2 = np.meshgrid(s1, s2)
+        sp1 = np.ones_like(s1)
+        sm1 = -sp1
+        xp1 = np.stack((sp1, s1, s2), axis=-1).reshape(-1, 3)
+        xm1 = np.stack((sm1, s1, s2), axis=-1).reshape(-1, 3)
+        yp1 = np.stack((s1, sp1, s2), axis=-1).reshape(-1, 3)
+        ym1 = np.stack((s1, sm1, s2), axis=-1).reshape(-1, 3)
+        zp1 = np.stack((s1, s2, sp1), axis=-1).reshape(-1, 3)
+        zm1 = np.stack((s1, s2, sm1), axis=-1).reshape(-1, 3)
+        default_border_xyz = np.concatenate((xp1, xm1, yp1, ym1, zp1, zm1), axis=0)
+        default_border_xyz = np.unique(default_border_xyz, axis=0) # corner points are duplicated
+        cube_border = np.zeros(default_border_xyz.shape[0])
+        split_part = np.ones(default_border_xyz.shape[0], dtype=np.int8) * i
+        extra_part = np.concatenate((default_border_xyz, -np.ones((default_border_xyz.shape[0], 1)), \
+            split_part.reshape(-1, 1), np.zeros((default_border_xyz.shape[0], 1))), axis=1)
+        # extra_part = np.concatenate((default_border_xyz, -np.ones((default_border_xyz.shape[0], 1)), \
+        #     split_part.reshape(-1, 1), -np.ones((default_border_xyz.shape[0], 1))), axis=1)
+        
+        part = np.concatenate((part, extra_part), axis=0)
         split_parts.append(part)
         
     return split_parts
