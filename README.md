@@ -10,6 +10,8 @@ Set Genotype hyperparameters (line 17-22)
 
 Set AFPO hyperparameters (line 25-27)
 
+Set structural (line 33)
+
 # Running your experiments
 1. In CPPN.Genome
 comment line 12 and line 13
